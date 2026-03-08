@@ -270,6 +270,11 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
     <div id="auth-status-bar" style="display:none;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:5px;padding:5px 8px;color:var(--sidebar-ac)">
       ✓ <span id="auth-status-text">Mode admin actif</span>
     </div>
+    <div id="admin-data-controls" style="display:none;margin-top:8px;border-top:1px solid var(--sidebar-br);padding-top:8px;grid-template-columns:1fr 1fr;gap:6px">
+      <button class="ctrl-btn" onclick="exportData()" title="Télécharger le fichier de données">⬇ SAUVEGARDER</button>
+      <button class="ctrl-btn" onclick="triggerImport()" title="Charger un fichier de données">⬆ CHARGER</button>
+      <input type="file" id="import-input" style="display:none" onchange="importData(this)" accept=".json">
+    </div>
   </div>
 </aside>
 
@@ -977,10 +982,54 @@ function applyAdminUI(){
   btn.title = admin ? (lang==='en'?'Logout admin':'Se déconnecter') : (lang==='en'?'Admin login':'Connexion admin');
   // status bar
   document.getElementById('auth-status-bar').style.display = admin ? 'block' : 'none';
+  document.getElementById('admin-data-controls').style.display = admin ? 'grid' : 'none';
   // re-render detail modal to show/hide delete button
   renderDashboard();
   renderReports();
   renderJournal();
+}
+
+/* ═══════════════════════════════════════
+   DATA PERSISTENCE (FILE SYSTEM)
+═══════════════════════════════════════ */
+function exportData() {
+  const dataStr = JSON.stringify({reports:state.reports, journal:state.journal, progress:state.progress}, null, 2);
+  const blob = new Blob([dataStr], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = "cyberstage-data.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function triggerImport() { document.getElementById('import-input').click(); }
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.reports || data.journal) {
+        if(data.reports) state.reports = data.reports;
+        if(data.journal) state.journal = data.journal;
+        if(data.progress) state.progress = data.progress;
+        save(); // Save to localStorage as well
+        renderDashboard(); renderReports(); renderJournal(); updateCounts();
+        alert(lang==='en' ? "Data loaded successfully!" : "Données chargées avec succès !");
+      } else {
+        alert(lang==='en' ? "Invalid file format." : "Format de fichier invalide.");
+      }
+    } catch (err) {
+      alert(lang==='en' ? "Error reading file." : "Erreur lors de la lecture du fichier.");
+    }
+    input.value = ''; // Reset input
+  };
+  reader.readAsText(file);
 }
 
 function togglePwd(){
