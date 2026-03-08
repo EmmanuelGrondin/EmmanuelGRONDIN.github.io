@@ -11,23 +11,23 @@
 :root {
   --bg:#ffffff; --bg2:#f7f7f7; --bg3:#efefef;
   --border:#e4e4e4; --border2:#d0d0d0;
-  --accent:#ff0000; --accent-h:#b91c1c;
-  --accent2:#7c3aed; --accent3:#059669; --accent4:#b10404;
-  --red:#ff0000; --text:#111111; --text2:#555555; --text3:#999999;
+  --accent:#dc2626; --accent-h:#b91c1c;
+  --accent2:#7c3aed; --accent3:#059669; --accent4:#d97706;
+  --red:#dc2626; --text:#111111; --text2:#555555; --text3:#999999;
   --glow:0 0 20px rgba(220,38,38,0.12); --glow2:0 0 40px rgba(220,38,38,0.07);
   --sidebar-bg:#1a1a1a; --sidebar-tx:#f0f0f0; --sidebar-t2:#aaaaaa; --sidebar-t3:#555555;
-  --sidebar-br:#2e2e2e; --sidebar-ac:#ff0000;
+  --sidebar-br:#2e2e2e; --sidebar-ac:#ef4444;
   --topbar-bg:#ffffff; --card-sh:0 1px 4px rgba(0,0,0,0.07);
 }
 [data-theme="dark"] {
   --bg:#0a0a0a; --bg2:#111111; --bg3:#1a1a1a;
   --border:#222222; --border2:#333333;
-  --accent:#ff0000; --accent-h:#ff0000;
+  --accent:#ef4444; --accent-h:#f87171;
   --accent2:#7c3aed; --accent3:#10b981; --accent4:#f59e0b;
-  --red:#ff0000; --text:#f0f0f0; --text2:#aaaaaa; --text3:#555555;
+  --red:#ef4444; --text:#f0f0f0; --text2:#aaaaaa; --text3:#555555;
   --glow:0 0 20px rgba(239,68,68,0.15); --glow2:0 0 40px rgba(239,68,68,0.08);
   --sidebar-bg:#0d0d0d; --sidebar-tx:#f0f0f0; --sidebar-t2:#aaaaaa; --sidebar-t3:#555555;
-  --sidebar-br:#1e1e1e; --sidebar-ac:hwb(0 0% 0%);
+  --sidebar-br:#1e1e1e; --sidebar-ac:#ef4444;
   --topbar-bg:#111111; --card-sh:none;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -226,6 +226,8 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
 .report-body-content{padding:22px 26px;font-size:14px;color:var(--text2);line-height:1.8;white-space:pre-wrap;}
 .pdf-viewer{width:100%;height:400px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);}
 ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.shake{animation:shake .4s ease;}
 </style>
 </head>
 <body data-theme="light">
@@ -260,15 +262,23 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
     <div class="nav-item" onclick="showPage('about')"><span class="nav-icon">◉</span><span data-i18n="nav-about">À propos</span></div>
   </nav>
 
-  <div class="sidebar-footer"><span class="status-dot"></span><span class="status-text" data-i18n="status">Stage en cours</span></div>
+  <div class="sidebar-footer">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div><span class="status-dot"></span><span class="status-text" data-i18n="status">Stage en cours</span></div>
+      <button id="auth-toggle-btn" onclick="handleAuthToggle()" title="Admin" style="background:none;border:1px solid var(--sidebar-br);border-radius:6px;cursor:pointer;padding:5px 8px;font-size:13px;transition:all .2s;color:var(--sidebar-t3)">🔒</button>
+    </div>
+    <div id="auth-status-bar" style="display:none;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:5px;padding:5px 8px;color:var(--sidebar-ac)">
+      ✓ <span id="auth-status-text">Mode admin actif</span>
+    </div>
+  </div>
 </aside>
 
 <main class="main">
   <div class="topbar">
     <div><div class="topbar-title" id="topbar-title">Tableau de bord</div><div class="topbar-path" id="topbar-path">cyberstage / tableau-de-bord</div></div>
-    <div class="topbar-actions">
-      <button class="btn btn-ghost" onclick="openJournalModal()"><span data-i18n="btn-journal">+ Journal</span></button>
-      <button class="btn btn-primary" onclick="openReportModal()"><span data-i18n="btn-report">+ Rapport</span></button>
+    <div class="topbar-actions" id="topbar-actions">
+      <button class="btn btn-ghost" id="topbar-btn-journal" onclick="requireAuth(openJournalModal)" style="display:none"><span data-i18n="btn-journal">+ Journal</span></button>
+      <button class="btn btn-primary" id="topbar-btn-report" onclick="requireAuth(openReportModal)" style="display:none"><span data-i18n="btn-report">+ Rapport</span></button>
     </div>
   </div>
 
@@ -307,7 +317,7 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
 
   <!-- RAPPORTS -->
   <div id="page-rapports" class="page">
-    <div class="section-header"><div><div class="section-title"><span data-i18n="rep-t1">Tous les</span> <span class="accent-line" data-i18n="rep-t2">rapports</span></div><div class="section-sub" data-i18n="rep-sub">// Rapports hebdomadaires & par module</div></div><button class="btn btn-primary" onclick="openReportModal()"><span data-i18n="btn-new">+ Nouveau rapport</span></button></div>
+    <div class="section-header"><div><div class="section-title"><span data-i18n="rep-t1">Tous les</span> <span class="accent-line" data-i18n="rep-t2">rapports</span></div><div class="section-sub" data-i18n="rep-sub">// Rapports hebdomadaires & par module</div></div><button class="btn btn-primary admin-only" onclick="requireAuth(openReportModal)" style="display:none"><span data-i18n="btn-new">+ Nouveau rapport</span></button></div>
     <div class="filter-bar">
       <button class="filter-btn active" onclick="filterReports('all',this)" data-i18n="f-all">TOUS</button>
       <button class="filter-btn" onclick="filterReports('hebdo',this)" data-i18n="f-hebdo">HEBDO</button>
@@ -337,7 +347,7 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
 
   <!-- JOURNAL -->
   <div id="page-journal" class="page">
-    <div class="section-header"><div><div class="section-title"><span data-i18n="jrn-t1">Journal de</span> <span class="accent-line" data-i18n="jrn-t2">bord</span></div><div class="section-sub" data-i18n="jrn-sub">// Notes quotidiennes · observations · difficultés · progrès</div></div><button class="btn btn-primary" onclick="openJournalModal()"><span data-i18n="btn-entry">+ Nouvelle entrée</span></button></div>
+    <div class="section-header"><div><div class="section-title"><span data-i18n="jrn-t1">Journal de</span> <span class="accent-line" data-i18n="jrn-t2">bord</span></div><div class="section-sub" data-i18n="jrn-sub">// Notes quotidiennes · observations · difficultés · progrès</div></div><button class="btn btn-primary admin-only" onclick="requireAuth(openJournalModal)" style="display:none"><span data-i18n="btn-entry">+ Nouvelle entrée</span></button></div>
     <div class="journal-entries" id="journal-entries"><div style="text-align:center;padding:56px;color:var(--text3)"><div style="font-size:30px;margin-bottom:10px">◧</div><div style="font-size:15px;font-weight:700;color:var(--text2);margin-bottom:5px" data-i18n="jrn-et">Aucune entrée de journal</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px" data-i18n="jrn-es">Notez vos observations quotidiennes...</div></div></div>
   </div>
 
@@ -369,6 +379,37 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
     </div>
   </div>
 </main>
+
+<!-- MODAL MOT DE PASSE -->
+<div class="modal-overlay" id="modal-password">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header" style="border-bottom:none;padding-bottom:8px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(220,38,38,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔒</div>
+        <div>
+          <div class="modal-title" data-i18n="pw-title">Accès protégé</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);margin-top:2px" data-i18n="pw-sub">Saisissez le mot de passe pour continuer</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-password')">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:12px">
+      <div class="form-group">
+        <label class="form-label" data-i18n="pw-label">Mot de passe</label>
+        <div style="position:relative">
+          <input class="form-input" type="password" id="pw-input" data-i18n-ph="pw-ph" onkeydown="if(event.key==='Enter')checkPassword()" autocomplete="off" style="padding-right:44px;letter-spacing:3px;font-size:18px;">
+          <button onclick="togglePwVis()" id="pw-eye" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;">👁</button>
+        </div>
+        <div id="pw-error" style="display:none;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red);display:flex;align-items:center;gap:6px"><span>✕</span><span data-i18n="pw-wrong">Mot de passe incorrect</span></div>
+        <div id="pw-attempts" style="margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);display:none"></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="padding-top:0">
+      <button class="btn btn-ghost" onclick="closeModal('modal-password')"><span data-i18n="btn-cancel">Annuler</span></button>
+      <button class="btn btn-primary" onclick="checkPassword()"><span data-i18n="pw-btn">Déverrouiller</span></button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL RAPPORT -->
 <div class="modal-overlay" id="modal-report">
@@ -425,6 +466,35 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
       </div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-journal')"><span data-i18n="btn-cancel">Annuler</span></button><button class="btn btn-primary" onclick="saveJournal()"><span data-i18n="btn-save-j">Enregistrer</span></button></div>
+  </div>
+</div>
+
+<!-- MODAL AUTH -->
+<div class="modal-overlay" id="modal-auth" style="z-index:300">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header" style="border-bottom:none;padding-bottom:8px">
+      <div>
+        <div class="modal-title" id="auth-title">🔐 Accès administrateur</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);margin-top:4px" id="auth-sub">Saisissez le mot de passe pour continuer</div>
+      </div>
+    </div>
+    <div class="modal-body" style="padding-top:8px">
+      <div class="form-group">
+        <label class="form-label" id="auth-label">Mot de passe</label>
+        <div style="position:relative">
+          <input class="form-input" type="password" id="auth-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()" autocomplete="off" style="padding-right:44px">
+          <button onclick="togglePwd()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+        </div>
+        <div id="auth-error" style="display:none;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red)">✕ <span id="auth-error-msg">Mot de passe incorrect</span></div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);line-height:1.7">
+        <span id="auth-info-txt">ℹ Les visiteurs peuvent consulter tous les rapports librement. Seul l'administrateur peut ajouter ou supprimer du contenu.</span>
+      </div>
+    </div>
+    <div class="modal-footer" style="padding-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-auth')" id="auth-cancel-btn">Annuler</button>
+      <button class="btn btn-primary" onclick="submitAuth()" id="auth-submit-btn">Connexion</button>
+    </div>
   </div>
 </div>
 
@@ -503,6 +573,9 @@ const T={
     'tp-dashboard':'cyberstage / tableau-de-bord','tp-rapports':'cyberstage / rapports',
     'tp-modules':'cyberstage / modules','tp-journal':'cyberstage / journal','tp-about':'cyberstage / a-propos',
     rc:'rapport(s)',
+    'pw-title':'Accès protégé','pw-sub':'Saisissez le mot de passe pour continuer',
+    'pw-label':'Mot de passe','pw-ph':'••••••••','pw-wrong':'Mot de passe incorrect',
+    'pw-btn':'Déverrouiller','pw-att':'tentative(s) restante(s)',
   },
   en:{
     light:'Light',dark:'Dark',convention:'CONVENTION',start:'START',end:'END',week:'WEEK',
@@ -562,6 +635,9 @@ const T={
     'tp-dashboard':'cyberstage / dashboard','tp-rapports':'cyberstage / reports',
     'tp-modules':'cyberstage / modules','tp-journal':'cyberstage / logbook','tp-about':'cyberstage / about',
     rc:'report(s)',
+    'pw-title':'Protected access','pw-sub':'Enter the password to continue',
+    'pw-label':'Password','pw-ph':'••••••••','pw-wrong':'Incorrect password',
+    'pw-btn':'Unlock','pw-att':'attempt(s) remaining',
   }
 };
 
@@ -586,6 +662,7 @@ function setLang(l){
   document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const k=el.getAttribute('data-i18n-ph');if(t[k]!==undefined)el.placeholder=t[k];});
   document.querySelectorAll('option[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(t[k]!==undefined)el.textContent=t[k];});
   updateTopbar(); updateCounts();
+  updateAuthModalLang();
   try{localStorage.setItem('cs-lang',l);}catch(e){}
 }
 
@@ -698,9 +775,58 @@ function filterReports(cat,btn){state.currentFilter=cat;document.querySelectorAl
 function filterAndGo(cat){state.currentFilter=cat;showPage('rapports');}
 
 /* ═══════════════════════════════════════
+   PASSWORD GATE
+═══════════════════════════════════════ */
+const PW='09032026';
+let pwAttempts=5, pwUnlocked=false;
+
+function openReportModal(){
+  if(pwUnlocked){ _openReportForm(); return; }
+  // Show password modal
+  document.getElementById('pw-input').value='';
+  document.getElementById('pw-error').style.display='none';
+  document.getElementById('pw-attempts').style.display='none';
+  document.getElementById('modal-password').classList.add('open');
+  setTimeout(()=>document.getElementById('pw-input').focus(),100);
+}
+
+function checkPassword(){
+  const val=document.getElementById('pw-input').value;
+  if(val===PW){
+    pwUnlocked=true; pwAttempts=5;
+    closeModal('modal-password');
+    _openReportForm();
+  } else {
+    pwAttempts=Math.max(0,pwAttempts-1);
+    const errEl=document.getElementById('pw-error');
+    const attEl=document.getElementById('pw-attempts');
+    errEl.style.display='flex';
+    document.getElementById('pw-input').value='';
+    document.getElementById('pw-input').style.borderColor='var(--red)';
+    document.getElementById('pw-input').style.boxShadow='0 0 0 3px rgba(220,38,38,.15)';
+    setTimeout(()=>{document.getElementById('pw-input').style.borderColor='';document.getElementById('pw-input').style.boxShadow='';},1200);
+    if(pwAttempts>0&&pwAttempts<5){
+      attEl.style.display='block';
+      attEl.textContent=pwAttempts+' '+(T[lang]['pw-att']||'tentative(s) restante(s)');
+    }
+    if(pwAttempts===0){
+      document.querySelector('#modal-password .btn-primary').disabled=true;
+      document.querySelector('#modal-password .btn-primary').style.opacity='.4';
+      setTimeout(()=>{ pwAttempts=5; document.querySelector('#modal-password .btn-primary').disabled=false; document.querySelector('#modal-password .btn-primary').style.opacity=''; attEl.style.display='none'; },30000);
+    }
+    document.getElementById('pw-input').focus();
+  }
+}
+
+function togglePwVis(){
+  const inp=document.getElementById('pw-input');
+  inp.type=inp.type==='password'?'text':'password';
+}
+
+/* ═══════════════════════════════════════
    MODAL REPORT
 ═══════════════════════════════════════ */
-function openReportModal(){
+function _openReportForm(){
   state.selectedTags=[];state.uploadedFile=null;state.uploadedFileData=null;
   document.querySelectorAll('#tags-container .form-tag-btn').forEach(b=>b.className='form-tag-btn');
   document.getElementById('file-name').textContent='';document.getElementById('file-input').value='';
@@ -751,6 +877,9 @@ function openDetail(id){
   if(r.mode==='pdf'&&r.pdfData){body=`<div style="padding:22px 26px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:10px">📄 ${r.pdfName}</div>${r.content?`<p style="font-size:13px;color:var(--text2);margin-bottom:14px">${r.content}</p>`:''}<iframe class="pdf-viewer" src="${r.pdfData}"></iframe><a href="${r.pdfData}" download="${r.pdfName}" style="display:inline-flex;align-items:center;gap:7px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);text-decoration:none">⬇ ${dl}</a></div>`;}
   else{body=`<div class="report-body-content">${r.content||'<em style="color:var(--text3)">'+nc+'</em>'}</div>`;}
   document.getElementById('detail-body').innerHTML=body;
+  // show delete only for admin
+  const delBtn = document.querySelector('#modal-detail .modal-footer .btn-ghost[onclick="deleteReport()"]');
+  if(delBtn) delBtn.style.display = isAdmin ? 'flex' : 'none';
   document.getElementById('modal-detail').classList.add('open');
 }
 function deleteReport(){if(!confirm(lang==='en'?'Delete this report?':'Supprimer ce rapport ?'))return;state.reports=state.reports.filter(r=>r.id!==state.currentDetailId);save();closeModal('modal-detail');renderDashboard();renderReports();}
@@ -786,12 +915,99 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(o=>o.classList.remove('open'));});
 
 /* ═══════════════════════════════════════
+   AUTH SYSTEM
+═══════════════════════════════════════ */
+let isAdmin = false;
+let authCallback = null;
+
+function requireAuth(cb){
+  if(isAdmin){ cb(); return; }
+  authCallback = cb;
+  openAuthModal();
+}
+
+function openAuthModal(){
+  document.getElementById('auth-input').value='';
+  document.getElementById('auth-error').style.display='none';
+  updateAuthModalLang();
+  document.getElementById('modal-auth').classList.add('open');
+  setTimeout(()=>document.getElementById('auth-input').focus(), 150);
+}
+
+function submitAuth(){
+  const val = document.getElementById('auth-input').value;
+  if(val === PW){
+    isAdmin = true;
+    document.getElementById('modal-auth').classList.remove('open');
+    document.getElementById('auth-input').value='';
+    applyAdminUI();
+    if(authCallback){ authCallback(); authCallback=null; }
+  } else {
+    document.getElementById('auth-error').style.display='block';
+    document.getElementById('auth-input').value='';
+    document.getElementById('auth-input').focus();
+    document.getElementById('auth-input').classList.add('shake');
+    setTimeout(()=>document.getElementById('auth-input').classList.remove('shake'),500);
+  }
+}
+
+function logout(){
+  isAdmin=false;
+  authCallback=null;
+  applyAdminUI();
+}
+
+function handleAuthToggle(){
+  if(isAdmin){ logout(); }
+  else { authCallback=null; openAuthModal(); }
+}
+
+function applyAdminUI(){
+  const admin = isAdmin;
+  // topbar buttons
+  document.getElementById('topbar-btn-journal').style.display = admin?'flex':'none';
+  document.getElementById('topbar-btn-report').style.display  = admin?'flex':'none';
+  // all admin-only buttons on pages
+  document.querySelectorAll('.admin-only').forEach(el=>el.style.display=admin?'flex':'none');
+  // lock icon in sidebar
+  const btn = document.getElementById('auth-toggle-btn');
+  btn.textContent = admin ? '🔓' : '🔒';
+  btn.style.color = admin ? 'var(--sidebar-ac)' : 'var(--sidebar-t3)';
+  btn.style.borderColor = admin ? 'var(--sidebar-ac)' : 'var(--sidebar-br)';
+  btn.title = admin ? (lang==='en'?'Logout admin':'Se déconnecter') : (lang==='en'?'Admin login':'Connexion admin');
+  // status bar
+  document.getElementById('auth-status-bar').style.display = admin ? 'block' : 'none';
+  // re-render detail modal to show/hide delete button
+  renderDashboard();
+  renderReports();
+  renderJournal();
+}
+
+function togglePwd(){
+  const inp = document.getElementById('auth-input');
+  inp.type = inp.type==='password' ? 'text' : 'password';
+}
+
+function updateAuthModalLang(){
+  const en = lang==='en';
+  document.getElementById('auth-title').textContent      = en ? '🔐 Admin access' : '🔐 Accès administrateur';
+  document.getElementById('auth-sub').textContent        = en ? 'Enter the password to continue' : 'Saisissez le mot de passe pour continuer';
+  document.getElementById('auth-label').textContent      = en ? 'PASSWORD' : 'MOT DE PASSE';
+  document.getElementById('auth-error-msg').textContent  = en ? 'Incorrect password' : 'Mot de passe incorrect';
+  document.getElementById('auth-info-txt').textContent   = en ? 'ℹ Visitors can browse all reports freely. Only the administrator can add or delete content.' : 'ℹ Les visiteurs peuvent consulter tous les rapports librement. Seul l\'administrateur peut ajouter ou supprimer du contenu.';
+  document.getElementById('auth-cancel-btn').textContent = en ? 'Cancel' : 'Annuler';
+  document.getElementById('auth-submit-btn').textContent = en ? 'Login' : 'Connexion';
+  document.getElementById('auth-status-text').textContent= en ? 'Admin mode active' : 'Mode admin actif';
+}
+
+/* ═══════════════════════════════════════
    INIT
 ═══════════════════════════════════════ */
 load();
 initWeek();
 renderDashboard();
 renderJournal();
+applyAdminUI();
 </script>
 </body>
 </html>
